@@ -1,5 +1,7 @@
 package webserver;
 
+import com.google.common.base.Strings;
+import com.google.common.primitives.Booleans;
 import db.DataBase;
 import model.User;
 import org.slf4j.Logger;
@@ -43,21 +45,15 @@ public class RequestHandler extends Thread {
 
         try (InputStream in = connection.getInputStream(); OutputStream out = connection.getOutputStream()) {
             // TODO 사용자 요청에 대한 처리는 이 곳에 구현하면 된다.
-            DataOutputStream dos = new DataOutputStream(out);
-            BufferedReader br = new BufferedReader(new InputStreamReader(in));
-
-            parseHeader(br);
+            HttpRequest request = new HttpRequest(in);
+            HttpResponse response = new HttpResponse(out);
 
             byte[] body = "".getBytes();
-            String method = headerMap.get("method");
-            if("GET".equals(method)) {
-                body = doGet();
+            if(request.getMethod().isPost()) {
+                doPost(request, response);
+            } else {
+                doGet(request, response);
             }
-            if("POST".equals(method)) {
-                body = doPost(br);
-            }
-
-            response(dos, body);
         } catch (IOException e) {
             log.error(e.getMessage());
         }
@@ -174,50 +170,52 @@ public class RequestHandler extends Thread {
             log.error(e.getMessage());
         }
     }
-    private byte[] doPost( BufferedReader br) throws IOException {
-        String requestUrl = getRequestUrl();
-        String queryStr = IOUtils.readData(br, Integer.parseInt(headerMap.get("Content-Length")));
-        boolean isLogined = userHandler.isLogined(requestCookie.get("logined"));
-        Map<String, String> paramMap = HttpRequestUtils.parseQueryString(queryStr);
-        if(requestUrl.contains("/user")){
-            if(requestUrl.contains("/create")) {
-                userHandler.addUser(paramMap.get("userId"), paramMap.get("password"), paramMap.get("email"), paramMap.get("name"));
-                redirectUrl = "/index.html";
-                httpStatus = 302;
+    private void doPost( HttpRequest request, HttpResponse response) throws IOException {
+        String path = request.getPath();
+        if(path.contains("/user")){
+            if(path.contains("/create")) {
+                userHandler.addUser(
+                        request.getParameter("userId"),
+                        request.getParameter("password"),
+                        request.getParameter("email"),
+                        request.getParameter("name"));
+                response.sendRedirect("/index.html");
             }
-            if(requestUrl.contains("/login")) {
-                String id = paramMap.get("userId");
-                String password = paramMap.get("password");
-                if(userHandler.canLogin(id, password)) {
-                    redirectUrl = "/index.html";
-                    responseCookie.put("logined", "true");
-                    httpStatus = 302;
+            if(path.contains("/login")) {
+                if(userHandler.canLogin(
+                        request.getParameter("userId"),
+                        request.getParameter("password"))) {
+                    response.setCookie("logined", "true");
+                    response.sendRedirect("/index.html");
                 } else {
-                    redirectUrl = "/user/login_failed.html";
-                    responseCookie.put("logined", "false");
-                    httpStatus = 302;
+                    response.setCookie("logined", "false");
+                    response.sendRedirect("/login_failed.html");
                 }
             }
         }
-        return "".getBytes();
     }
 
-    private byte[] doGet() throws IOException {
-        String requestUrl = getRequestUrl();
-        String queryStr = getQueryString();
-        boolean isLogined = userHandler.isLogined(requestCookie.get("logined"));
-        Map<String, String> paramMap = HttpRequestUtils.parseQueryString(queryStr);
+    private void doGet(HttpRequest request, HttpResponse response) throws IOException {
+        String path = request.getPath();
 
-        if(requestUrl.contains("/user/create")) {
-            userHandler.addUser(paramMap.get("userId"), paramMap.get("password"), paramMap.get("email"), paramMap.get("name"));
-            return "".getBytes();
+        if(path.contains("/user/create")) {
+            userHandler.addUser(
+                    request.getParameter("userId"),
+                    request.getParameter("password"),
+                    request.getParameter("email"),
+                    request.getParameter("name")
+            );
+            response.sendRedirect("/index.html");
         }
-        if(requestUrl.contains("/list")) {
-            if(isLogined) {
-                return buildUserList(userHandler.getUserList()).getBytes();
+        else if(path.contains("/list")) {
+            if(isLogined(request)) {
+                buildUserList(userHandler.getUserList()).getBytes();
             }
         }
-        return  getResource(requestUrl);
+        else {
+            response.forward(path);
+        }
+
     }
 
     public String buildUserList(List<User> list){
@@ -233,5 +231,13 @@ public class RequestHandler extends Thread {
         }
         sb.append("</table>");
         return sb.toString();
+    }
+
+    public boolean isLogined(HttpRequest request) {
+        String logined = request.getCookie("logined");
+        if(Strings.isNullOrEmpty(logined)) {
+            return false;
+        }
+        return Boolean.parseBoolean(logined);
     }
 }
