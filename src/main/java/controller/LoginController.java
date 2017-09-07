@@ -11,7 +11,7 @@ public class LoginController extends AbstractController {
         User user = DataBase.findUserById(request.getParameter("userId"));
         if (user != null) {
             if (user.login(request.getParameter("password"))) {
-                response.addHeader("Set-Cookie", "logined=true");
+                request.getSession().setAttribute("user", user);
                 response.sendRedirect("/index.html");
             } else {
                 response.sendRedirect("/user/login_failed.html");

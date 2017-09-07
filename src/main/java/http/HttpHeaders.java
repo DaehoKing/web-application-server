@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import util.HttpRequestUtils;
 
 class HttpHeaders {
 	private static final String CONTENT_LENGTH = "Content-Length";
@@ -16,7 +17,7 @@ class HttpHeaders {
 	void add(String header) {
 		log.debug("header : {}", header);
 	    String[] splitedHeaders = header.split(":");
-	    headers.put(splitedHeaders[0], splitedHeaders[1].trim());   
+	    headers.put(splitedHeaders[0], splitedHeaders[1].trim());
 	}
 	
     String getHeader(String name) {

@@ -19,6 +19,10 @@ public class HttpRequest {
 	
 	private RequestParams requestParams = new RequestParams();
 
+	private HttpCookies cookies;
+
+	private final String sessionIdKey = "JSESSIONID";
+
 	public HttpRequest(InputStream is) {
 		try {
 			BufferedReader br = new BufferedReader(new InputStreamReader(is, "UTF-8"));
@@ -26,6 +30,7 @@ public class HttpRequest {
 			requestParams.addQueryString(requestLine.getQueryString());
 			headers = processHeaders(br);
 			requestParams.addBody(IOUtils.readData(br, headers.getContentLength()));
+			cookies = new HttpCookies(headers.getHeader("Cookie"));
 		} catch (IOException e) {
 			log.error(e.getMessage());
 		}
@@ -62,5 +67,13 @@ public class HttpRequest {
 
 	public String getParameter(String name) {
 		return requestParams.getParameter(name);
+	}
+
+	public HttpSession getSession() {
+		return SessionPool.getSession(cookies.getCookie(sessionIdKey));
+	}
+
+	public HttpCookies getCookies() {
+		return this.cookies;
 	}
 }
