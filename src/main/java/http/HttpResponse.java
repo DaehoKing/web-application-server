@@ -1,5 +1,8 @@
 package http;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -8,9 +11,6 @@ import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class HttpResponse {
     private static final Logger log = LoggerFactory.getLogger(HttpResponse.class);
@@ -93,5 +93,20 @@ public class HttpResponse {
         } catch (IOException e) {
             log.error(e.getMessage());
         }
+    }
+
+    public void setCookie(Cookie cookie) {
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append(cookie.getKey()).append("=").append(cookie.getValue()).append("; ");
+        if(cookie.ishttpOnly()) {
+            stringBuilder.append("HttpOnly; ");
+        }
+        String path = cookie.getPath();
+        if(path != null) {
+            stringBuilder.append(path);
+        }
+
+        headers.put("Set-Cookie", stringBuilder.toString());
+        log.debug("response cookie... {}",stringBuilder.toString());
     }
 }
