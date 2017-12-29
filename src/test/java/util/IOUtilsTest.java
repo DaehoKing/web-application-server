@@ -23,6 +23,5 @@ public class IOUtilsTest {
         File file = new File("webapp/index.html");
         BufferedReader br = new BufferedReader(new FileReader(file));
         logger.debug("file contents : {}", IOUtils.readData(br, (int)file.length()));
-
     }
 }

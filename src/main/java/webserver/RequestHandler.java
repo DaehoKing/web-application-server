@@ -2,7 +2,7 @@ package webserver;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import util.IOUtils;
+import util.HttpRequestUtils;
 
 import java.io.*;
 import java.net.Socket;
@@ -24,7 +24,8 @@ public class RequestHandler extends Thread {
             // TODO 사용자 요청에 대한 처리는 이 곳에 구현하면 된다.
             DataOutputStream dos = new DataOutputStream(out);
             BufferedReader br = new BufferedReader(new InputStreamReader(in));
-            byte[] body = getBody(br.readLine());
+            String requestLine = HttpRequestUtils.getRequestLine(in);
+            byte[] body = getBody(requestLine);
             response200Header(dos, body.length);
             responseBody(dos, body);
         } catch (IOException e) {
@@ -53,20 +54,35 @@ public class RequestHandler extends Thread {
     }
 
     private byte[] getBody(String  requestLine) {
+        assert requestLine != null;
+        log.debug("Request Line : {}", requestLine);
         String body = "";
-        if(requestLine.contains("index.html")) {
-            try {
-                File file = new File("webapp/index.html");
-                BufferedReader br = new BufferedReader(new FileReader(file));
-                body = IOUtils.readData(br, (int) file.length());
-                return body.getBytes();
-            } catch (FileNotFoundException e) {
-                log.debug("FileNotFoundException!", e);
-            } catch (IOException e) {
-                log.debug("IOException!", e);
-            }
+        String[] token = requestLine.split(" ");
+        if( token.length < 3) {
+            throw new RuntimeException();
         }
 
-        return "안녕 뚝배기".getBytes();
+        String url = token[1];
+
+        try {
+            return HttpRequestUtils.readFile(url);
+        } catch (IOException e) {
+            log.debug("IOException!", e);
+            return "안녕 뚝배기".getBytes();
+        }
     }
+
+//    private String getHTTPRequestLine(InputStream in) {
+//        try {
+//            BufferedReader br = new BufferedReader(new InputStreamReader(in));
+//            String requestLine = br.readLine();
+//            if( requestLine == null || requestLine.contains("HTTP") == false) {
+//                new RuntimeException("정상적인 HTTP 요청이 아님");
+//            }
+//            return requestLine;
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//        return "";
+//    }
 }

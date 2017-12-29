@@ -1,5 +1,6 @@
 package util;
 
+import java.io.*;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -47,6 +48,27 @@ public class HttpRequestUtils {
         }
 
         return new Pair(tokens[0], tokens[1]);
+    }
+
+    static public String getRequestLine(InputStream in) {
+        try {
+            BufferedReader br = new BufferedReader(new InputStreamReader(in));
+            String requestLine = br.readLine();
+            if( requestLine == null || requestLine.contains("HTTP") == false) {
+                new RuntimeException("정상적인 HTTP 요청이 아님");
+            }
+            return requestLine;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "";
+    }
+
+    static public byte[] readFile(String url) throws IOException {
+        File file = new File("webapp" + url);
+        BufferedReader br = new BufferedReader(new FileReader(file));
+        String body = IOUtils.readData(br, (int) file.length());
+        return body.getBytes();
     }
 
     public static Pair parseHeader(String header) {
