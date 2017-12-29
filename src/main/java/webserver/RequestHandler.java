@@ -2,11 +2,9 @@ package webserver;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import util.IOUtils;
 
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.Socket;
 
 public class RequestHandler extends Thread {
@@ -25,7 +23,8 @@ public class RequestHandler extends Thread {
         try (InputStream in = connection.getInputStream(); OutputStream out = connection.getOutputStream()) {
             // TODO 사용자 요청에 대한 처리는 이 곳에 구현하면 된다.
             DataOutputStream dos = new DataOutputStream(out);
-            byte[] body = "안녕 뚝빼기~".getBytes();
+            BufferedReader br = new BufferedReader(new InputStreamReader(in));
+            byte[] body = getBody(br.readLine());
             response200Header(dos, body.length);
             responseBody(dos, body);
         } catch (IOException e) {
@@ -51,5 +50,23 @@ public class RequestHandler extends Thread {
         } catch (IOException e) {
             log.error(e.getMessage());
         }
+    }
+
+    private byte[] getBody(String  requestLine) {
+        String body = "";
+        if(requestLine.contains("index.html")) {
+            try {
+                File file = new File("webapp/index.html");
+                BufferedReader br = new BufferedReader(new FileReader(file));
+                body = IOUtils.readData(br, (int) file.length());
+                return body.getBytes();
+            } catch (FileNotFoundException e) {
+                log.debug("FileNotFoundException!", e);
+            } catch (IOException e) {
+                log.debug("IOException!", e);
+            }
+        }
+
+        return "안녕 뚝배기".getBytes();
     }
 }
