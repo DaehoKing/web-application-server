@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
+import model.RequestLine;
 
 public class HttpRequestUtils {
     /**
@@ -50,22 +51,27 @@ public class HttpRequestUtils {
         return new Pair(tokens[0], tokens[1]);
     }
 
-    static public String getRequestLine(InputStream in) {
+    static public RequestLine getRequestLine(InputStream in) {
         try {
             BufferedReader br = new BufferedReader(new InputStreamReader(in));
             String requestLine = br.readLine();
             if( requestLine == null || requestLine.contains("HTTP") == false) {
-                new RuntimeException("정상적인 HTTP 요청이 아님");
+                throw new RuntimeException("정상적인 HTTP 요청이 아님");
             }
-            return requestLine;
+            String[] token = requestLine.split(" ");
+            if( token.length < 3) {
+                throw new RuntimeException("정상적인 HTTP 요청이 아님");
+            }
+
+            return new RequestLine(token[0], token[1], token[2]);
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return "";
+        return null;
     }
 
     static public byte[] readFile(String url) throws IOException {
-        File file = new File("webapp" + url);
+        File file = new File("./webapp" + url);
         BufferedReader br = new BufferedReader(new FileReader(file));
         String body = IOUtils.readData(br, (int) file.length());
         return body.getBytes();
